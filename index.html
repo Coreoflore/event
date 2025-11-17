@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Calculator</title>
+    <style>
+        /* This project uses CSS Variables (like --bg-color) to make the
+          dark/light theme switching easy and smooth.
+        */
+        :root {
+            /* --- Improved Light Mode Color Scheme --- */
+            --bg-color: #f4f7fc;
+            --calc-bg: #ffffff;
+            --display-bg: #fdfdff;
+            --display-text: #222233;
+            --btn-bg: #f9f9f9;
+            --btn-text: #333333;
+            --btn-hover: #f0f0f0;
+            --btn-op-bg: #f9f9f9;
+            --btn-op-text: #007bff; /* Upgraded to a modern blue */
+            --btn-op-hover: #f0f0f0;
+            --btn-equals-bg: #007bff; /* Upgraded to a modern blue */
+            --btn-equals-text: #ffffff;
+            --btn-equals-hover: #0069d9;
+            --shadow: 0 5px 20px rgba(0, 0, 0, 0.07);
+            --border: #e0e0e0;
+        }
+
+        /* These are the colors for the "OLED True Black" dark mode.
+          The 'body.dark-mode' class is added by JavaScript.
+        */
+        body.dark-mode {
+            /* --- Improved "True Black" Dark Mode --- */
+            --bg-color: #000000;
+            --calc-bg: #0a0a0a;
+            --display-bg: #000000;
+            --display-text: #ffffff;
+            --btn-bg: #1c1c1c;
+            --btn-text: #ffffff;
+            --btn-hover: #333333;
+            --btn-op-bg: #1c1c1c;
+            --btn-op-text: #00aaff; /* "Glowing" neon blue */
+            --btn-op-hover: #333333;
+            --btn-equals-bg: #00aaff; /* "Glowing" neon blue */
+            --btn-equals-text: #000000;
+            --btn-equals-hover: #0095dd;
+            /* Shadow now has a blue "glow" */
+            --shadow: 0 4px 20px rgba(0, 170, 255, 0.15);
+            --border: #2c2c2c;
+        }
+
+        /* Basic page setup */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            transition: background-color 0.4s ease;
+        }
+
+        /* The main calculator container */
+        .calculator {
+            position: relative; /* Needed for positioning the theme toggle */
+            width: 100%;
+            max-width: 320px;
+            background-color: var(--calc-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            /* Set overflow to visible to see the button */
+            overflow: visible; 
+            border: 1px solid var(--border);
+            transition: background-color 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+        }
+        
+        /* The inner part of the calculator needs to be rounded */
+        .calculator-inner {
+            border-radius: 15px; /* Slightly less than parent */
+            overflow: hidden;
+        }
+
+        /* The calculator's display screen */
+        .display {
+            width: 100%;
+            padding: 25px 20px;
+            background-color: var(--display-bg);
+            border-bottom: 1px solid var(--border);
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+        }
+
+        #display-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: none;
+            text-align: right;
+            font-size: 48px;
+            font-weight: 300;
+            color: var(--display-text);
+            padding: 0;
+            /* Prevents user from typing directly into it */
+            pointer-events: none; 
+            transition: color 0.4s ease;
+        }
+
+        /* The grid container for all the buttons */
+        .buttons {
+            display: grid;
+            /* Create 4 equal columns */
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px; /* Creates the thin lines between buttons */
+            background-color: var(--border); /* This color shows through the gap */
+        }
+
+        /* Styling for all buttons */
+        .btn {
+            padding: 20px;
+            font-size: 22px;
+            font-weight: 500;
+            border: none;
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            cursor: pointer;
+            /* This is the transition for the click animation */
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--btn-hover);
+        }
+
+        /* This is the click "press down" animation */
+        .btn:active {
+            transform: scale(0.95);
+            background-color: var(--btn-hover);
+        }
+
+        /* Special styling for operator buttons (+, -, *, /) */
+        .btn.operator {
+            background-color: var(--btn-op-bg);
+            color: var(--btn-op-text);
+        }
+
+        .btn.operator:hover {
+            background-color: var(--btn-op-hover);
+        }
+
+        /* Special styling for the 'C' (Clear) button */
+        .btn.clear {
+            color: var(--btn-op-text);
+        }
+
+        /* Special styling for the '=' button */
+        .btn.equals {
+            background-color: var(--btn-equals-bg);
+            color: var(--btn-equals-text);
+            /* Make the = button span 2 grid columns */
+            grid-column: span 2;
+        }
+
+        .btn.equals:hover {
+            background-color: var(--btn-equals-hover);
+        }
+        
+        /* --- (Recoded) Theme Toggle Button --- */
+        
+        #theme-toggle {
+            position: absolute;
+            top: 80px; /* Align with the first row of buttons */
+            right: -25px; /* Sits halfway out of the 320px container */
+            width: 50px;
+            height: 50px;
+            background-color: var(--calc-bg);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center the icon wrapper */
+            font-size: 24px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            
+            /* Add a great animation */
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden; /* To hide the other icon */
+            /* Set perspective for the 3D flip */
+            perspective: 1000px;
+            z-index: 10;
+        }
+
+        #theme-toggle:hover {
+            transform: scale(1.1) translateX(-5px); /* Pops out a bit */
+            box-shadow: var(--shadow);
+        }
+
+        #theme-toggle:active {
+            transform: scale(0.95) translateX(-5px);
+        }
+
+        /* Wrapper for the 3D Flip */
+        .icon-wrapper {
+            position: relative;
+            width: 24px; /* Matches font-size */
+            height: 24px; /* Matches font-size */
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        /* Both icons are styled the same way */
+        #theme-icon-moon, #theme-icon-sun {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Hides the back of the icon when it's flipped */
+            backface-visibility: hidden; 
+            transition: color 0.4s ease;
+            color: var(--btn-op-text);
+            display: flex; /* Center icons perfectly */
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Sun icon starts flipped 'backward' */
+        #theme-icon-sun {
+            transform: rotateY(180deg);
+        }
+
+        /* When dark mode is active, flip the wrapper */
+        body.dark-mode .icon-wrapper {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- The Calculator -->
+    <div class="calculator">
+        
+        <!-- This new wrapper helps keep the rounded corners 
+             while the toggle button pokes out -->
+        <div class="calculator-inner">
+            <!-- The Display -->
+            <div class="display">
+                <input type="text" id="display-input" value="" readonly placeholder="0">
+            </div>
+
+            <!-- The Buttons -->
+            <div class="buttons">
+                <!-- Row 1 -->
+                <button class="btn clear" onclick="clearDisplay()">C</button>
+                <button class="btn operator" onclick="appendToDisplay('/')">/</button>
+                <button class="btn operator" onclick="appendToDisplay('*')">*</button>
+                <button class="btn operator" onclick="appendToDisplay('-')">-</button>
+                
+                <!-- Row 2 -->
+                <button class="btn" onclick="appendToDisplay('7')">7</button>
+                <button class="btn" onclick="appendToDisplay('8')">8</button>
+                <button class="btn" onclick="appendToDisplay('9')">9</button>
+                <button class="btn operator" onclick="appendToDisplay('+')">+</button>
+
+                <!-- Row 3 -->
+                <button class="btn" onclick="appendToDisplay('4')">4</button>
+                <button class="btn" onclick="appendToDisplay('5')">5</button>
+                <button class="btn" onclick="appendToDisplay('6')">6</button>
+                <button class="btn" onclick="appendToDisplay('.')">.</button>
+
+                <!-- Row 4 -->
+                <button class="btn" onclick="appendToDisplay('1')">1</button>
+                <button class="btn" onclick="appendToDisplay('2')">2</button>
+                <button class="btn" onclick="appendToDisplay('3')">3</button>
+                <button class="btn" onclick="appendToDisplay('0')">0</button>
+
+                <!-- Row 5 (Spans) -->
+                <button class="btn equals" onclick="calculateResult()">=</button>
+            </div>
+        </div>
+        
+        <!-- The (Recoded) Theme Toggle Button -->
+        <button id="theme-toggle">
+            <span class="icon-wrapper">
+                <span id="theme-icon-moon">🌙</span>
+                <span id="theme-icon-sun">☀️</span>
+            </span>
+        </button>
+
+    </div>
+
+    <script>
+        const display = document.getElementById('display-input');
+
+        // Function to add numbers/operators to the display
+        function appendToDisplay(value) {
+            display.value += value;
+        }
+
+        // Function to clear the display
+        function clearDisplay() {
+            display.value = '';
+        }
+
+        // Function to calculate the result
+        // It uses eval(), which is simple for this project.
+        // We use a try...catch block to handle bad inputs (like 1+*2)
+        function calculateResult() {
+            try {
+                // eval() takes the string and runs it as JavaScript code
+                let result = eval(display.value);
+                
+                // Check for division by zero, which results in 'Infinity'
+                if (result === Infinity || result === -Infinity) {
+                    display.value = 'Error';
+                } 
+                // Check if the result is not a valid number
+                else if (isNaN(result)) {
+                    display.colvalue = 'Error';
+                }
+                else {
+                    // Check if result is a float and format to reasonable decimal places
+                    if (!Number.isInteger(result)) {
+                        result = parseFloat(result.toFixed(10));
+                    }
+                    display.value = result;
+                }
+            } catch (error) {
+                // If eval() fails, show 'Error'
+                display.value = 'Error';
+            }
+        }
+
+        // --- (Recoded) Theme Toggle JavaScript ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        themeToggle.addEventListener('click', () => {
+            // Toggle the 'dark-mode' class on the body
+            body.classList.toggle('dark-mode');
+
+            // The 3D flip animation is now handled 100% by CSS
+            // by toggling the 'dark-mode' class on the body!
+        });
+
+        // Also, I found another small typo from my last edit:
+        // 'display.colvalue' in calculateResult().
+        // I've corrected it in this version.
+        function calculateResult() {
+            try {
+                let result = eval(display.value);
+                
+                if (result === Infinity || result === -Infinity) {
+                    display.value = 'Error';
+                } 
+                else if (isNaN(result)) {
+                    display.value = 'Error'; // Corrected this line
+                }
+                else {
+                    if (!Number.isInteger(result)) {
+                        result = parseFloat(result.toFixed(10));
+                    }
+                    display.value = result;
+                }
+            } catch (error) {
+                display.value = 'Error';
+            }
+        }
+    </script>
+
+</body>
+</html>
